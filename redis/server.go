@@ -180,7 +180,7 @@ func RunServer() {
 
 func (s *Server) Start() {
 	// Initialize database
-	s.init(DATABASE)
+	s.Init(DATABASE)
 	// accept client connections
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", PORT)
 	fatalError(err)
@@ -208,7 +208,7 @@ func populateDb(db *redisDb) {
 	}
 }
 
-func (s *Server) init(path string) {
+func (s *Server) Init(path string) {
 	firstInit := pmem.Init(path)
 
 	if firstInit { // indicates a first time initialization
