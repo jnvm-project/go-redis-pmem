@@ -18,7 +18,7 @@ import (
 )
 
 type (
-	server struct {
+	Server struct {
 		db       *redisDb
 		commands map[string](*redisCommand)
 	}
@@ -36,7 +36,7 @@ type (
 	}
 
 	client struct {
-		s       *server
+		s       *Server
 		db      *redisDb
 		conn    *net.TCPConn
 		rBuffer *bufio.Reader
@@ -174,11 +174,11 @@ var (
 )
 
 func RunServer() {
-	s := new(server)
+	s := new(Server)
 	s.Start()
 }
 
-func (s *server) Start() {
+func (s *Server) Start() {
 	// Initialize database
 	s.init(DATABASE)
 	// accept client connections
@@ -208,7 +208,7 @@ func populateDb(db *redisDb) {
 	}
 }
 
-func (s *server) init(path string) {
+func (s *Server) init(path string) {
 	firstInit := pmem.Init(path)
 
 	if firstInit { // indicates a first time initialization
@@ -233,7 +233,7 @@ func (s *server) init(path string) {
 	createSharedObjects()
 }
 
-func (s *server) populateCommandTable() {
+func (s *Server) populateCommandTable() {
 	s.commands = make(map[string](*redisCommand))
 	for i, v := range redisCommandTable {
 		s.commands[v.name] = &redisCommandTable[i]
@@ -262,18 +262,18 @@ func createSharedObjects() {
 		minstring:      []byte("minstring")}
 }
 
-func (s *server) Cron() {
+func (s *Server) Cron() {
 	go s.db.Cron()
 }
 
-func (s *server) handleClient(conn *net.TCPConn) {
+func (s *Server) handleClient(conn *net.TCPConn) {
 	c := s.newClient(conn)
 	c.conn.SetNoDelay(false) // try batching packet to improve tp.
 	c.processInput()
 	conn.Close()
 }
 
-func (s *server) newClient(conn *net.TCPConn) *client {
+func (s *Server) newClient(conn *net.TCPConn) *client {
 	return &client{s: s,
 		db:           s.db,
 		conn:         conn,
