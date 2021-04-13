@@ -64,7 +64,7 @@ type (
 
 const (
 	DATABASE string = "./database"
-	PORT     string = ":6379"
+	PORT     string = ":6378"
 	MAGIC    int    = 0x3F4F357F7C9824B3
 
 	CMD_WRITE    int = 1 << 0
