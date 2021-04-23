@@ -235,7 +235,7 @@ func hashTypeLookupWriteOrCreate(c *client, key []byte) interface{} {
 	o, ok := c.getHashOrReply(c.db.lookupKeyWrite(key), nil)
 	if ok {
 		if o == nil {
-			o = NewDict(4, 4) // implicitly convert to interface
+			o = NewDict(10, 10) // implicitly convert to interface
 			c.db.setKey(shadowCopyToPmem(key), o)
 		}
 	}

@@ -90,6 +90,10 @@ func (op *Operations) Hget(key string, field string) ([]byte,error){
 	return v, nil
 }
 
+func (op *Operations) GetLen(t int) int {
+	return len(op.s.db.dict.tab[t].bucket)
+}
+
 func (op *Operations) Hset(key string, values map[string][]byte) error {
 	//why not lockKeysWrite(argv[1:],2)? it takes all indices at modulo 2. Does it lock fields ?
 	//arv[0]->
