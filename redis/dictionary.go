@@ -18,7 +18,6 @@ import (
 	"sync"
 	"time"
 	"unsafe"
-	"regexp"
 
 	"github.com/vmware/go-pmem-transaction/transaction"
 )
@@ -29,7 +28,6 @@ const (
 
 var (
 	fnvHash hash.Hash32 = fnv.New32a()
-	reg *regexp.Regexp
 )
 
 type (
@@ -68,13 +66,6 @@ type (
 
 func NewDict(initSize, bucketPerShard int) *dict {
 	d := pnew(dict)
-	var err error
-
-	reg, err = regexp.Compile("[a-zA-Z/]+")
-	if err != nil {
-		fmt.Printf("fail compiling regex\n")
-	}
-
 	txn("undo") {
 	d.initSize = nextPower(1, initSize)
 	// TODO: add -1 value to indicate ALWAYS set bucketPerShard to dict size.
@@ -118,14 +109,9 @@ func inPMem(a unsafe.Pointer) {
 }
 
 func (d *dict) swizzle() {
-	var err error
 	inPMem(unsafe.Pointer(d))
 	d.lock = new(sync.RWMutex)
 	d.rehashLock = new(sync.RWMutex)
-	reg, err = regexp.Compile("[a-zA-Z/]+")
-	if err != nil {
-		fmt.Printf("fail compiling regex\n")
-	}
 	d.tab[0].swizzle(d)
 	d.tab[1].swizzle(d)
 }
@@ -188,7 +174,7 @@ func (d *dict) shard(b int) int {
 }
 
 func (d *dict) hashKey(key []byte) int {
-	return memtierhash(key)
+	return dumbhash(key)
 }
 
 func fnvhash(key []byte) int {
@@ -207,8 +193,7 @@ func dumbhash(key []byte) int {
 }
 
 func memtierhash(key []byte) int {
-	newstr := reg.ReplaceAllString(string(key), "")
-	h, _ := strconv.Atoi(newstr)
+	h, _ := strconv.Atoi(string(key[8:]))
 	return h
 }
 
@@ -385,8 +370,6 @@ func (d *dict) lockShard(t, s int) {
 }
 
 func (d *dict) find(key []byte) (int, int, *entry, *entry) {
-	//counter := 0
-
 	h := d.hashKey(key)
 	var (
 		maxt, b   int
@@ -398,31 +381,19 @@ func (d *dict) find(key []byte) (int, int, *entry, *entry) {
 		maxt = 0
 	}
 	// fmt.Println("finding ", key)
-	//start := time.Now()
 	for i := 0; i <= maxt; i++ {
 		b = h & d.tab[i].mask
 		pre = nil
 		curr = d.tab[i].bucket[b]
 		for curr != nil {
-			//counter++
 			// fmt.Println("comparing with ", curr)
 			if bytes.Compare(curr.key, key) == 0 {
-				//elapsed := time.Since(start)
-				//fmt.Printf("compare: i=%d count=%d elapsed=%s key=%s h=%d b=%d len0=%d len1=%d\n",
-				//i, counter, elapsed, key, h, b, len(d.tab[0].bucket), len(d.tab[1].bucket))
-				//len of buckets
 				return i, b, pre, curr
 			}
-			//elapsed := time.Since(start)
-			//fmt.Printf("elapsed=%s\n", elapsed)
 			pre = curr
 			curr = curr.next
 		}
 	}
-
-	//elapsed := time.Since(start)
-	//fmt.Printf("count=%d elapsed=%s key=%s h=%d b=%d\n", counter, elapsed, key, h, b)
-
 	return maxt, b, pre, curr
 }
 
