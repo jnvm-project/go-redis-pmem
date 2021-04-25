@@ -90,6 +90,40 @@ func (op *Operations) Hget(key string, field string) ([]byte,error){
 	return v, nil
 }
 
+
+func (op *Operations) Hmget(key string, fields []string) (map[string][]byte,error){
+	bkey := []byte(key)
+	v := make(map[string][]byte, len(fields))
+	var ok bool
+
+	txn("undo") {
+	op.s.db.lockKeyRead(bkey)
+
+	/* Fetch the dictionnary associated to key in global dict */
+	o := op.s.db.lookupKeyRead(bkey)
+	if o == nil {
+		fmt.Printf("failed looking up key=%s\n", key)
+		return nil,errors.New("fail Getting key key\n")
+	}
+	for _, field := range fields {
+		switch d := o.(type) {
+		case *dict:
+			v[field], ok = getString(hashTypeGetValue(d, []byte(field)))
+			if !ok {
+				fmt.Printf("failed Getting key=%s\n", key)
+				return nil,errors.New("fail Getting key key\n")
+			}
+		default:
+			panic("Unknown hash encoding")
+		}
+	}
+	}
+
+	//fmt.Printf("[Hmget] key=%s field=%s, value=%s\n", key, field, v)
+
+	return v, nil
+}
+
 func (op *Operations) GetLen(t int) int {
 	return len(op.s.db.dict.tab[t].bucket)
 }
