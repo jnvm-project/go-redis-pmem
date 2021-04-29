@@ -180,7 +180,7 @@ func RunServer() {
 
 func (s *Server) Start() {
 	// Initialize database
-	s.Init(DATABASE)
+	s.Init(DATABASE, 1024)
 	// accept client connections
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", PORT)
 	fatalError(err)
@@ -200,21 +200,21 @@ func (s *Server) Start() {
 	}
 }
 
-func populateDb(db *redisDb) {
+func populateDb(db *redisDb, initSize int) {
 	txn("undo") {
-		db.dict = NewDict(1024, 32)
+		db.dict = NewDict(initSize, 32)
 		db.expire = NewDict(128, 1)
 		db.magic = MAGIC
 	}
 }
 
-func (s *Server) Init(path string) {
+func (s *Server) Init(path string, initSize int) {
 	firstInit := pmem.Init(path)
 
 	if firstInit { // indicates a first time initialization
 		var dbr *redisDb
 		db := (*redisDb)(pmem.New("dbRoot", dbr))
-		populateDb(db)
+		populateDb(db, initSize)
 		s.db = db
 	} else {
 		var dbr *redisDb
@@ -222,7 +222,7 @@ func (s *Server) Init(path string) {
 		if db.magic != MAGIC {
 			// Previous initialization did not complete successfully. Re-populate
 			// data members in db.
-			populateDb(db)
+			populateDb(db, initSize)
 		}
 		s.db = db
 		txn("undo") {

@@ -76,6 +76,7 @@ func (op *Operations) Hget(key string, field string) ([]byte,error){
 	i := op.s.db.lookupKeyRead(bkey)
 	if i == nil {
 		fmt.Printf("failed looking up key=%s\n", key)
+		return nil,errors.New("fail Getting key key\n")
 	}
 	/* Fetch the field in the dictionnary retrieved above */
 	v, ok = getString(hashTypeGetValue(i, []byte(field)))
@@ -229,11 +230,11 @@ func myhashTypeBgResize(db *redisDb, key []byte) {
 	}
 }
 
-func CreateOperations(filepath string)(Operations) {
+func CreateOperations(filepath string, initSize int)(Operations) {
 	op := Operations{}
 
 	op.s = Server{}
-	op.s.Init(filepath)
+	op.s.Init(filepath, initSize)
 
 	return op
 }
