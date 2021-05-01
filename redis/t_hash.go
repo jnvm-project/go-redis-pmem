@@ -15,7 +15,6 @@ import (
 	"math"
 	"math/rand"
 	"strconv"
-	"fmt"
 
 	"github.com/vmware/go-pmem-transaction/transaction"
 )
@@ -45,8 +44,6 @@ func hsetCommand(c *client) {
 		c.addReplyError([]byte("wrong number of arguments for HMSET"))
 		return
 	}
-
-	fmt.Printf("hset command: %s\n", c.argv[1:])
 
 	c.db.lockKeysWrite(c.argv[1:], 2)
 
