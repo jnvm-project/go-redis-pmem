@@ -24,6 +24,7 @@ import (
 
 const (
 	Ratio = 2
+	HIST_NB = 512
 )
 
 var (
@@ -108,6 +109,14 @@ func inPMem(a unsafe.Pointer) {
 	}
 }
 
+func (d *dict) swizzle2(hist *[HIST_NB]int64) {
+	inPMem(unsafe.Pointer(d))
+	d.lock = new(sync.RWMutex)
+	d.rehashLock = new(sync.RWMutex)
+	d.tab[0].swizzle2(d, hist)
+	d.tab[1].swizzle(d)
+}
+
 func (d *dict) swizzle() {
 	inPMem(unsafe.Pointer(d))
 	d.lock = new(sync.RWMutex)
@@ -115,6 +124,34 @@ func (d *dict) swizzle() {
 	d.tab[0].swizzle(d)
 	d.tab[1].swizzle(d)
 }
+
+func (t *table) swizzle2(d *dict, hist *[HIST_NB]int64) {
+	s := t.mask + 1
+	if s > 0 {
+		shards := d.shard(s)
+		t.bucketlock = make([]sync.RWMutex, shards)
+		inPMem(unsafe.Pointer(&t.bucket[0]))
+		inPMem(unsafe.Pointer(&t.used[0]))
+		total := 0
+		x := 0
+		for _, u := range t.used {
+			total += u
+		}
+		// fmt.Println("Total kv pairs:", total)
+		for _, e := range t.bucket {
+			bucketlen := 0
+			for e != nil {
+				bucketlen++
+				x++
+				//println(x, e, e.key, e.value, e.next)
+				e.swizzle()
+				e = e.next
+			}
+			hist[bucketlen]++
+		}
+	}
+}
+
 
 func (t *table) swizzle(d *dict) {
 	s := t.mask + 1

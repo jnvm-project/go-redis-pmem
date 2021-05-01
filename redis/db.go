@@ -7,6 +7,7 @@ package redis
 
 import (
 	"time"
+	"fmt"
 
 	"github.com/vmware/go-pmem-transaction/transaction"
 )
@@ -64,8 +65,16 @@ func (db *redisDb) expireCron(sleep time.Duration) {
 	}
 }
 
+func printHist(hist [HIST_NB]int64) {
+	for i, v := range hist {
+		fmt.Printf("i=%d v=%d\n", i, v)
+	}
+}
+
 func (db *redisDb) swizzle() {
-	db.dict.swizzle()
+	var hist [HIST_NB]int64
+	db.dict.swizzle2(&hist)
+	printHist(hist)
 	db.expire.swizzle()
 }
 
